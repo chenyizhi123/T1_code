@@ -1,0 +1,209 @@
+<?xml version="1.0"?>
+<robot name="soccer_field_half" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- 机器人足球半场 URDF 描述 -->
+  <!-- 基于 RoboCup MSL 规格，半场尺寸: 9米 x 12米 -->
+  
+  <!-- Gazebo材质定义 -->
+  <gazebo reference="field_base">
+    <material>Gazebo/Grass</material>
+  </gazebo>
+  
+  <gazebo reference="midfield_line">
+    <material>Gazebo/White</material>
+  </gazebo>
+  
+  <gazebo reference="left_touchline">
+    <material>Gazebo/White</material>
+  </gazebo>
+  
+  <gazebo reference="right_touchline">
+    <material>Gazebo/White</material>
+  </gazebo>
+  
+  <gazebo reference="goal_line">
+    <material>Gazebo/White</material>
+  </gazebo>
+  
+  <gazebo reference="left_goal_post">
+    <material>Gazebo/White</material>
+  </gazebo>
+  
+  <gazebo reference="right_goal_post">
+    <material>Gazebo/White</material>
+  </gazebo>
+  
+  <gazebo reference="crossbar">
+    <material>Gazebo/White</material>
+  </gazebo>
+  
+  <!-- 基础链接 - 场地中心 -->
+  <link name="field_base">
+    <visual>
+      <origin xyz="6 4.5 -0.01" rpy="0 0 0"/>
+      <geometry>
+        <box size="12 9 0.02"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0.0 0.5 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="6 4.5 -0.01" rpy="0 0 0"/>
+      <geometry>
+        <box size="12 9 0.02"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1000.0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <!-- 边界线 -->
+  <!-- 中线 -->
+  <link name="midfield_line">
+    <visual>
+      <origin xyz="6 0 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="12 0.1 0.01"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- 左边线 -->
+  <link name="left_touchline">
+    <visual>
+      <origin xyz="0 4.5 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.1 9 0.01"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- 右边线 -->
+  <link name="right_touchline">
+    <visual>
+      <origin xyz="12 4.5 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.1 9 0.01"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- 球门线 -->
+  <link name="goal_line">
+    <visual>
+      <origin xyz="6 9 0.001" rpy="0 0 0"/>
+      <geometry>
+        <box size="12 0.1 0.01"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- 球门 -->
+  <!-- 左门柱 -->
+  <link name="left_goal_post">
+    <visual>
+      <origin xyz="4.825 9 0.4" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.8"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="4.825 9 0.4" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.8"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- 右门柱 -->
+  <link name="right_goal_post">
+    <visual>
+      <origin xyz="7.175 9 0.4" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.8"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="7.175 9 0.4" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.8"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- 横梁 -->
+  <link name="crossbar">
+    <visual>
+      <origin xyz="6 9 0.8" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="2.35"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="6 9 0.8" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="2.35"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- 固定关节连接所有部件到基础 -->
+  <joint name="field_to_midfield_line" type="fixed">
+    <parent link="field_base"/>
+    <child link="midfield_line"/>
+  </joint>
+
+  <joint name="field_to_left_touchline" type="fixed">
+    <parent link="field_base"/>
+    <child link="left_touchline"/>
+  </joint>
+
+  <joint name="field_to_right_touchline" type="fixed">
+    <parent link="field_base"/>
+    <child link="right_touchline"/>
+  </joint>
+
+  <joint name="field_to_goal_line" type="fixed">
+    <parent link="field_base"/>
+    <child link="goal_line"/>
+  </joint>
+
+  <joint name="field_to_left_goal_post" type="fixed">
+    <parent link="field_base"/>
+    <child link="left_goal_post"/>
+  </joint>
+
+  <joint name="field_to_right_goal_post" type="fixed">
+    <parent link="field_base"/>
+    <child link="right_goal_post"/>
+  </joint>
+
+  <joint name="field_to_crossbar" type="fixed">
+    <parent link="field_base"/>
+    <child link="crossbar"/>
+  </joint>
+
+</robot> 
