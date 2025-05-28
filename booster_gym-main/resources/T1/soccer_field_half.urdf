@@ -3,6 +3,22 @@
   <!-- 机器人足球半场 URDF 描述 -->
   <!-- 基于 RoboCup MSL 规格，半场尺寸: 9米 x 12米 -->
   
+  <!-- 材质定义 -->
+  <material name="green">
+    <color rgba="0.0 0.8 0.0 1.0"/>
+    <texture filename=""/>
+  </material>
+  
+  <material name="white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+    <texture filename=""/>
+  </material>
+  
+  <material name="goal_material">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+    <texture filename=""/>
+  </material>
+  
   <!-- 基础链接 - 场地中心 -->
   <link name="field_base">
     <visual>
@@ -10,9 +26,7 @@
       <geometry>
         <box size="12 9 0.02"/>
       </geometry>
-      <material name="green">
-        <color rgba="0.0 0.8 0.0 1.0"/>
-      </material>
+      <material name="green"/>
     </visual>
     <collision>
       <origin xyz="6 4.5 -0.01" rpy="0 0 0"/>
@@ -26,20 +40,18 @@
   <!-- 中线 -->
   <link name="midfield_line">
     <visual>
-      <origin xyz="6 0 0" rpy="0 0 0"/>
+      <origin xyz="6 0 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="12 0.1 0.01"/>
       </geometry>
-      <material name="white">
-        <color rgba="1.0 1.0 1.0 1.0"/>
-      </material>
+      <material name="white"/>
     </visual>
   </link>
 
   <!-- 左边线 -->
   <link name="left_touchline">
     <visual>
-      <origin xyz="0 4.5 0" rpy="0 0 0"/>
+      <origin xyz="0 4.5 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="0.1 9 0.01"/>
       </geometry>
@@ -50,7 +62,7 @@
   <!-- 右边线 -->
   <link name="right_touchline">
     <visual>
-      <origin xyz="12 4.5 0" rpy="0 0 0"/>
+      <origin xyz="12 4.5 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="0.1 9 0.01"/>
       </geometry>
@@ -61,7 +73,7 @@
   <!-- 球门线 -->
   <link name="goal_line">
     <visual>
-      <origin xyz="6 9 0" rpy="0 0 0"/>
+      <origin xyz="6 9 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="12 0.1 0.01"/>
       </geometry>
@@ -77,9 +89,7 @@
       <geometry>
         <cylinder radius="0.05" length="0.8"/>
       </geometry>
-      <material name="goal_material">
-        <color rgba="0.9 0.9 0.9 1.0"/>
-      </material>
+      <material name="goal_material"/>
     </visual>
     <collision>
       <origin xyz="4.825 9 0.4" rpy="0 0 0"/>
@@ -161,7 +171,7 @@
   <!-- 禁区前边线 -->
   <link name="penalty_area_front">
     <visual>
-      <origin xyz="6 6.8 0" rpy="0 0 0"/>
+      <origin xyz="6 6.8 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="6 0.1 0.01"/>
       </geometry>
@@ -172,7 +182,7 @@
   <!-- 禁区左边线 -->
   <link name="penalty_area_left">
     <visual>
-      <origin xyz="3 7.9 0" rpy="0 0 0"/>
+      <origin xyz="3 7.9 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="0.1 2.2 0.01"/>
       </geometry>
@@ -183,7 +193,7 @@
   <!-- 禁区右边线 -->
   <link name="penalty_area_right">
     <visual>
-      <origin xyz="9 7.9 0" rpy="0 0 0"/>
+      <origin xyz="9 7.9 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="0.1 2.2 0.01"/>
       </geometry>
@@ -194,7 +204,7 @@
   <!-- 罚球点 -->
   <link name="penalty_spot">
     <visual>
-      <origin xyz="6 6 0" rpy="0 0 0"/>
+      <origin xyz="6 6 0.005" rpy="0 0 0"/>
       <geometry>
         <cylinder radius="0.05" length="0.01"/>
       </geometry>
@@ -206,7 +216,7 @@
   <!-- 使用多个小段来近似半圆弧 -->
   <link name="center_circle_arc_1">
     <visual>
-      <origin xyz="5.5 0.866 0" rpy="0 0 0.5236"/>
+      <origin xyz="5.5 0.866 0.005" rpy="0 0 0.5236"/>
       <geometry>
         <box size="0.785 0.1 0.01"/>
       </geometry>
@@ -216,7 +226,7 @@
 
   <link name="center_circle_arc_2">
     <visual>
-      <origin xyz="6 1.5 0" rpy="0 0 1.5708"/>
+      <origin xyz="6 1.5 0.005" rpy="0 0 1.5708"/>
       <geometry>
         <box size="0.785 0.1 0.01"/>
       </geometry>
@@ -226,7 +236,7 @@
 
   <link name="center_circle_arc_3">
     <visual>
-      <origin xyz="6.5 0.866 0" rpy="0 0 2.618"/>
+      <origin xyz="6.5 0.866 0.005" rpy="0 0 2.618"/>
       <geometry>
         <box size="0.785 0.1 0.01"/>
       </geometry>
@@ -238,7 +248,7 @@
   <!-- 左角球弧 -->
   <link name="left_corner_arc_1">
     <visual>
-      <origin xyz="0.25 8.567 0" rpy="0 0 -0.5236"/>
+      <origin xyz="0.25 8.567 0.005" rpy="0 0 -0.5236"/>
       <geometry>
         <box size="0.262 0.1 0.01"/>
       </geometry>
@@ -248,7 +258,7 @@
 
   <link name="left_corner_arc_2">
     <visual>
-      <origin xyz="0.433 8.75 0" rpy="0 0 0"/>
+      <origin xyz="0.433 8.75 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="0.262 0.1 0.01"/>
       </geometry>
@@ -259,7 +269,7 @@
   <!-- 右角球弧 -->
   <link name="right_corner_arc_1">
     <visual>
-      <origin xyz="11.75 8.567 0" rpy="0 0 0.5236"/>
+      <origin xyz="11.75 8.567 0.005" rpy="0 0 0.5236"/>
       <geometry>
         <box size="0.262 0.1 0.01"/>
       </geometry>
@@ -269,7 +279,7 @@
 
   <link name="right_corner_arc_2">
     <visual>
-      <origin xyz="11.567 8.75 0" rpy="0 0 0"/>
+      <origin xyz="11.567 8.75 0.005" rpy="0 0 0"/>
       <geometry>
         <box size="0.262 0.1 0.01"/>
       </geometry>
