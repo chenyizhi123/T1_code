@@ -154,16 +154,7 @@ class T1(BaseTask):
             if soccer_field_asset is not None:
                 field_pose = gymapi.Transform()
                 field_pose.p = gymapi.Vec3(*pos)
-                field_pose.p.z = -0.025  # 调整足球场的位置，使其在地面上
-                field_handle = self.gym.create_actor(env_handle, soccer_field_asset, field_pose, "soccer_field", i, 0, 1)
-                self.field_handles.append(field_handle)
-            else:
-                self.field_handles.append(None)
-                        # 创建足球场
-            if soccer_field_asset is not None:
-                field_pose = gymapi.Transform()
-                field_pose.p = gymapi.Vec3(*pos)
-                field_pose.p.z = -0.025  # 调整足球场的位置，使其在地面上
+                field_pose.p.z = -0.01  # 只调整高度，让场地表面贴近地面
                 field_handle = self.gym.create_actor(env_handle, soccer_field_asset, field_pose, "soccer_field", i, 0, 1)
                 self.field_handles.append(field_handle)
             else:
@@ -674,7 +665,9 @@ class T1(BaseTask):
             [self.cfg["normalization"]["lin_vel"], self.cfg["normalization"]["lin_vel"], self.cfg["normalization"]["ang_vel"]],
             device=self.device,
         )
-        self.obs_buf = torch.cat(
+        
+        # 基础观察（47维）
+        base_obs = torch.cat(
             (
                 apply_randomization(self.projected_gravity, self.cfg["noise"].get("gravity")) * self.cfg["normalization"]["gravity"],
                 apply_randomization(self.base_ang_vel, self.cfg["noise"].get("ang_vel")) * self.cfg["normalization"]["ang_vel"],
@@ -687,16 +680,71 @@ class T1(BaseTask):
             ),
             dim=-1,
         )
-        self.privileged_obs_buf = torch.cat(
-            (
-                self.base_mass_scaled,
-                apply_randomization(self.base_lin_vel, self.cfg["noise"].get("lin_vel")) * self.cfg["normalization"]["lin_vel"],
-                apply_randomization(self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos), self.cfg["noise"].get("height")).unsqueeze(-1),
-                self.pushing_forces[:, 0, :] * self.cfg["normalization"]["push_force"],
-                self.pushing_torques[:, 0, :] * self.cfg["normalization"]["push_torque"],
-            ),
-            dim=-1,
-        )
+        
+        # 如果启用了足球，添加足球相关观察
+        if self.has_ball:
+            # 更新足球状态
+            # root_states包含所有环境的所有actor
+            # 每个环境的actor顺序：机器人[0], 足球场[1](如果有), 足球[1或2]
+            if self.cfg["env"].get("enable_soccer_field", False):
+                # 有足球场：机器人(0) + 足球场(1) + 足球(2) = 每环境3个actor
+                actors_per_env = 3
+                ball_idx_in_env = 2
+            else:
+                # 无足球场：机器人(0) + 足球(1) = 每环境2个actor
+                actors_per_env = 2
+                ball_idx_in_env = 1
+            
+            # 获取每个环境中球的索引
+            ball_indices = torch.arange(self.num_envs, device=self.device) * actors_per_env + ball_idx_in_env
+            
+            # 获取球的状态
+            self.ball_pos[:] = self.root_states[ball_indices, 0:3]
+            self.ball_vel[:] = self.root_states[ball_indices, 7:10]
+            
+            # 计算球在机器人局部坐标系中的位置
+            self.ball_local_pos[:] = quat_rotate_inverse(self.base_quat, self.ball_pos - self.base_pos)
+            
+            # 添加足球观察（13维）
+            ball_obs = torch.cat(
+                (
+                    self.ball_local_pos * 0.5,  # 球相对位置 (3维)，缩放以匹配其他观察的范围
+                    torch.zeros((self.num_envs, 10), device=self.device),  # 占位符，为未来扩展预留
+                ),
+                dim=-1,
+            )
+            
+            self.obs_buf = torch.cat((base_obs, ball_obs), dim=-1)
+        else:
+            self.obs_buf = base_obs
+        
+        # 特权观察保持不变
+        if self.has_ball:
+            # 当有足球时，特权观察包含额外的球信息（20维 = 14基础 + 6足球）
+            self.privileged_obs_buf = torch.cat(
+                (
+                    self.base_mass_scaled,                       # 4维
+                    apply_randomization(self.base_lin_vel, self.cfg["noise"].get("lin_vel")) * self.cfg["normalization"]["lin_vel"],  # 3维
+                    apply_randomization(self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos), self.cfg["noise"].get("height")).unsqueeze(-1),  # 1维
+                    self.pushing_forces[:, 0, :] * self.cfg["normalization"]["push_force"],   # 3维
+                    self.pushing_torques[:, 0, :] * self.cfg["normalization"]["push_torque"], # 3维
+                    self.ball_pos * 0.5,  # 球世界坐标位置 (3维)，缩放
+                    self.ball_vel * 0.5,  # 球世界坐标速度 (3维)，缩放
+                ),
+                dim=-1,
+            )
+        else:
+            # 无足球时，保持原来的14维特权观察
+            self.privileged_obs_buf = torch.cat(
+                (
+                    self.base_mass_scaled,
+                    apply_randomization(self.base_lin_vel, self.cfg["noise"].get("lin_vel")) * self.cfg["normalization"]["lin_vel"],
+                    apply_randomization(self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos), self.cfg["noise"].get("height")).unsqueeze(-1),
+                    self.pushing_forces[:, 0, :] * self.cfg["normalization"]["push_force"],
+                    self.pushing_torques[:, 0, :] * self.cfg["normalization"]["push_torque"],
+                ),
+                dim=-1,
+            )
         self.extras["privileged_obs"] = self.privileged_obs_buf
 
     # ------------ reward functions----------------

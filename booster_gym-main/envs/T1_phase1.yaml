@@ -9,12 +9,12 @@ basic:
 
 env:
   num_envs: 4096
-  num_observations: 47
-  num_privileged_obs: 14
+  num_observations: 60  # 47基础 + 13足球相关
+  num_privileged_obs: 20  # 14基础 + 6足球相关（位置3+速度3）
   num_actions: 12
   env_spacing: 1.
-  enable_soccer_ball: false   # 阶段一不加载足球
-  enable_soccer_field: false  # 阶段一不加载足球场
+  enable_soccer_ball: True   
+  enable_soccer_field: True 
 
 runner:
   horizon_length: 24
@@ -30,7 +30,7 @@ viewer:
   record_env_idx: 0
 
 algorithm:
-  learning_rate: 1.e-5
+  learning_rate: 1.e-6
   gamma: 0.995
   lam: 0.95
   bound_coef: 1.0
