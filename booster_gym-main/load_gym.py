@@ -3,11 +3,11 @@ import math
 import numpy as np
 
 
-from isaacgym import gymapi
+from isaacgym import gymapi    # Isaac Gym的主要API接口
 
-from isaacgym import gymtorch
+from isaacgym import gymtorch    # Isaac Gym的底层物理引擎
 import torch
-from isaacgym.torch_utils import to_torch, quat_from_euler_xyz
+from isaacgym.torch_utils import to_torch, quat_from_euler_xyz    # 用于将数据转换为PyTorch张量
 
 def main():
     # 初始化gym
@@ -24,12 +24,12 @@ def main():
     
     # 配置PhysX
     sim_params.physx.use_gpu = True
-    sim_params.physx.solver_type = 1  # TGS solver
-    sim_params.physx.num_position_iterations = 4
-    sim_params.physx.num_velocity_iterations = 1
-    sim_params.physx.contact_offset = 0.02
-    sim_params.physx.rest_offset = 0.0
-    sim = gym.create_sim(0, 0, gymapi.SIM_PHYSX, sim_params)
+    sim_params.physx.solver_type = 1  #  使用TGS求解器（更稳定）
+    sim_params.physx.num_position_iterations = 4 #位置约束迭代4次
+    sim_params.physx.num_velocity_iterations = 1 #速度约束迭代1次
+    sim_params.physx.contact_offset = 0.02 #接触偏移量
+    sim_params.physx.rest_offset = 0.0 #静止偏移量
+    sim = gym.create_sim(0, 0, gymapi.SIM_PHYSX, sim_params) #创建模拟器
     
     if sim is None:
         print("创建模拟器失败")
@@ -57,25 +57,25 @@ def main():
     # 1. 加载足球场
     field_file = "soccer_field.urdf"
     field_asset_options = gymapi.AssetOptions()
-    field_asset_options.fix_base_link = True
-    field_asset = gym.load_asset(sim, asset_root, field_file, field_asset_options)
+    field_asset_options.fix_base_link = True # 固定基座关节
+    field_asset = gym.load_asset(sim, asset_root, field_file, field_asset_options) # 加载足球场
     
     # 2. 加载机器人
     robot_file = "T1_locomotion.urdf"
     robot_asset_options = gymapi.AssetOptions()
-    robot_asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
-    robot_asset_options.fix_base_link = False
-    robot_asset_options.collapse_fixed_joints = True
-    robot_asset_options.angular_damping = 0.0
-    robot_asset = gym.load_asset(sim, asset_root, robot_file, robot_asset_options)
+    robot_asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT # 默认DOF驱动模式为力矩模式
+    robot_asset_options.fix_base_link = False # 固定基座关节
+    robot_asset_options.collapse_fixed_joints = True # 合并固定关节
+    robot_asset_options.angular_damping = 0.0 # 角阻尼
+    robot_asset = gym.load_asset(sim, asset_root, robot_file, robot_asset_options) # 加载机器人
     
     # 3. 加载足球
     ball_file = "soccer_ball.urdf"
     ball_asset_options = gymapi.AssetOptions()
-    ball_asset_options.fix_base_link = False
-    ball_asset_options.angular_damping = 0.1
-    ball_asset_options.linear_damping = 0.1
-    ball_asset = gym.load_asset(sim, asset_root, ball_file, ball_asset_options)
+    ball_asset_options.fix_base_link = False # 固定基座关节
+    ball_asset_options.angular_damping = 0.1 # 角阻尼
+    ball_asset_options.linear_damping = 0.1 # 线性阻尼
+    ball_asset = gym.load_asset(sim, asset_root, ball_file, ball_asset_options) # 加载足球
     
     # 获取机器人的DOF数量
     robot_dof_count = gym.get_asset_dof_count(robot_asset)
@@ -83,16 +83,18 @@ def main():
     
     # 将所有DOF设置为位置控制模式
     for i in range(robot_dof_count):
-        robot_dof_props['driveMode'][i] = gymapi.DOF_MODE_POS
-        robot_dof_props['stiffness'][i] = 100.0
-        robot_dof_props['damping'][i] = 1.0
+        robot_dof_props['driveMode'][i] = gymapi.DOF_MODE_POS # 设置DOF驱动模式为位置控制模式
+        robot_dof_props['stiffness'][i] = 100.0 # 设置DOF刚度
+        robot_dof_props['damping'][i] = 1.0 # 设置DOF阻尼
     
     # 创建环境
     num_envs = 1
     spacing = 10.0
     lower = gymapi.Vec3(-spacing, -spacing, 0.0)
     upper = gymapi.Vec3(spacing, spacing, spacing)
-    
+    # 创建1个环境实例
+    # 环境边界：20×20×10米的空间
+    # 准备存储各种对象的句柄
     envs = []
     robot_handles = []
     ball_handles = []
@@ -105,9 +107,9 @@ def main():
         
         # 放置足球场
         field_pose = gymapi.Transform()
-        field_pose.p = gymapi.Vec3(0.0, 0.0, 0.0)
-        field_pose.r = gymapi.Quat(0, 0, 0, 1)
-        field_handle = gym.create_actor(env, field_asset, field_pose, "field", i, 0)
+        field_pose.p = gymapi.Vec3(0.0, 0.0, 0.0) #在原点(0,0,0)放置足球场
+        field_pose.r = gymapi.Quat(0, 0, 0, 1) # 四元数表示旋转
+        field_handle = gym.create_actor(env, field_asset, field_pose, "field", i, 0) # 创建足球场
         field_handles.append(field_handle)
         
         # 放置机器人

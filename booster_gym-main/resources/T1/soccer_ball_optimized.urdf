@@ -2,59 +2,41 @@
 <robot name="soccer_ball">
   <link name="soccer_ball">
     <inertial>
-      <!-- 重量 -->
       <mass value="0.43"/>
-      <!-- 重心位置 -->
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <!-- 惯性矩 -->
       <inertia ixx="0.002" ixy="0" ixz="0" iyy="0.002" iyz="0" izz="0.002"/>
     </inertial>
+    
+    <!-- 主球体 -->
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <sphere radius="0.11"/>
       </geometry>
-      <!-- 材质 -->
       <material name="ball_texture">
-        <color rgba="1.0 0.2 0.2 1.0"/>
+        <color rgba="1.0 0.3 0.1 1.0"/>  <!-- 橙红色，更容易识别 -->
       </material>
     </visual>
+    
+    <!-- 简化的标记 - 只保留一个用于旋转观察 -->
     <visual>
       <origin xyz="0 0 0.08" rpy="0 0 0"/>
       <geometry>
-        <box size="0.01 0.12 0.01"/>
+        <cylinder radius="0.005" length="0.12"/>  <!-- 改为圆柱形，更平滑 -->
       </geometry>
       <material name="black_mark">
         <color rgba="0.0 0.0 0.0 1.0"/>
       </material>
     </visual>
-    <visual>
-      <origin xyz="0.08 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.01 0.12 0.01"/>
-      </geometry>
-      <material name="black_mark">
-        <color rgba="0.0 0.0 0.0 1.0"/>
-      </material>
-    </visual>
-    <visual>
-      <origin xyz="0 0.08 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.12 0.01 0.01"/>
-      </geometry>
-      <material name="black_mark">
-        <color rgba="0.0 0.0 0.0 1.0"/>
-      </material>
-    </visual>
+    
+    <!-- 碰撞检测 - 只用球体，避免标记干扰 -->
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <sphere radius="0.11"/>
       </geometry>
       <contact>
-        <!-- 反弹系数 -->
         <restitution value="0.8"/>
-        <!-- 摩擦系数 -->
         <friction value="0.7"/>
       </contact>
     </collision>
