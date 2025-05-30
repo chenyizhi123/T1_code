@@ -452,11 +452,8 @@ class T1(BaseTask):
         )
 
     def _reset_root_states(self, env_ids):
-        # 获取需要重置的机器人在root_states中的索引
-        robot_indices = []
-        for env_id in env_ids:
-            robot_indices.append(env_id * self.num_actors_per_env)
-        robot_indices = torch.tensor(robot_indices, device=self.device, dtype=torch.long)
+        # 使用向量化操作获取机器人在root_states中的索引
+        robot_indices = (env_ids * self.num_actors_per_env).long()
         
         # 更新root_states中机器人的部分
         self.root_states[robot_indices] = self.base_init_state
@@ -492,10 +489,13 @@ class T1(BaseTask):
         self.robot_root_states[out_y_max, 1] -= self.terrain.env_length + self.terrain.border_size
         
         # 同步更新root_states中对应的机器人状态
-        for i in range(self.num_envs):
-            if out_x_min[i] or out_x_max[i] or out_y_min[i] or out_y_max[i]:
-                robot_idx = i * self.num_actors_per_env
-                self.root_states[robot_idx] = self.robot_root_states[i]
+        # 找出所有需要更新的环境
+        need_update = out_x_min | out_x_max | out_y_min | out_y_max
+        if need_update.any():
+            # 使用向量化操作更新root_states
+            env_ids = torch.arange(self.num_envs, device=self.device)[need_update]
+            robot_indices = (env_ids * self.num_actors_per_env).long()
+            self.root_states[robot_indices] = self.robot_root_states[env_ids]
         
         # 更新body_states
         self.body_states[out_x_min, :, 0] += self.terrain.env_width + self.terrain.border_size
