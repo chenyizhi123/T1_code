@@ -2,8 +2,8 @@ import torch
 from utils.model_adapter import load_and_adapt_checkpoint
 
 # 适配模型
-checkpoint_path = "model_9900.pth"
-output_path = "model_9900_adapted_60d.pth"
+checkpoint_path = "model_10000.pth"
+output_path = "model_10000_adapted_60d.pth"
 
 # 加载并适配
 adapted_checkpoint = load_and_adapt_checkpoint(
