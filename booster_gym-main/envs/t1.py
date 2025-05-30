@@ -305,11 +305,24 @@ class T1(BaseTask):
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dofs, 2)[..., 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dofs, 2)[..., 1]
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3)  # shape: num_envs, num_bodies, xyz axis
-        self.body_states = gymtorch.wrap_tensor(body_state).view(self.num_envs, self.num_bodies, 13)
+        
+        # 使用-1让PyTorch自动计算每个环境的刚体总数
+        body_states_all = gymtorch.wrap_tensor(body_state)
+        self.total_num_bodies = body_states_all.shape[0] // self.num_envs
+        self.body_states = body_states_all.view(self.num_envs, -1, 13)
+        
+        # 打印调试信息
+        print(f"[调试] 每个环境的刚体总数: {self.total_num_bodies}")
+        print(f"[调试] 机器人刚体数: {self.num_bodies}")
+        print(f"[调试] 足球场和足球的刚体数: {self.total_num_bodies - self.num_bodies}")
+        
+        # 只提取机器人的刚体状态
+        self.robot_body_states = self.body_states[:, :self.num_bodies, :]
+        
         self.base_pos = self.root_states[:, 0:3]
         self.base_quat = self.root_states[:, 3:7]
-        self.feet_pos = self.body_states[:, self.feet_indices, 0:3]
-        self.feet_quat = self.body_states[:, self.feet_indices, 3:7]
+        self.feet_pos = self.robot_body_states[:, self.feet_indices, 0:3]
+        self.feet_quat = self.robot_body_states[:, self.feet_indices, 3:7]
 
         # initialize some data used later on
         self.common_step_counter = 0
@@ -615,8 +628,8 @@ class T1(BaseTask):
         )
 
     def _refresh_feet_state(self):
-        self.feet_pos[:] = self.body_states[:, self.feet_indices, 0:3]
-        self.feet_quat[:] = self.body_states[:, self.feet_indices, 3:7]
+        self.feet_pos[:] = self.robot_body_states[:, self.feet_indices, 0:3]
+        self.feet_quat[:] = self.robot_body_states[:, self.feet_indices, 3:7]
         roll, _, yaw = get_euler_xyz(self.feet_quat.reshape(-1, 4))
         self.feet_roll[:] = (roll.reshape(self.num_envs, len(self.feet_indices)) + torch.pi) % (2 * torch.pi) - torch.pi
         self.feet_yaw[:] = (yaw.reshape(self.num_envs, len(self.feet_indices)) + torch.pi) % (2 * torch.pi) - torch.pi
