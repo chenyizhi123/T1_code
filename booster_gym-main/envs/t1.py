@@ -321,6 +321,7 @@ class T1(BaseTask):
         
         # 只提取机器人的root states（每个环境的第一个actor）
         robot_indices = torch.arange(0, self.num_envs * num_actors_per_env, num_actors_per_env, device=self.device)
+        self.robot_indices = robot_indices  # 保存为成员变量
         self.robot_root_states = self.root_states[robot_indices]
         
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
@@ -420,7 +421,11 @@ class T1(BaseTask):
 
     def reset(self):
         """Reset all robots"""
+        if self.device != "cpu":
+            torch.cuda.synchronize()
         self._reset_idx(torch.arange(self.num_envs, device=self.device))
+        if self.device != "cpu":
+            torch.cuda.synchronize()
         self._resample_commands()
         self._compute_observations()
         return self.obs_buf, self.extras
@@ -452,8 +457,21 @@ class T1(BaseTask):
         )
 
     def _reset_root_states(self, env_ids):
+        # 确保num_actors_per_env已初始化
+        if not hasattr(self, 'num_actors_per_env'):
+            raise RuntimeError("num_actors_per_env not initialized")
+            
+        # 确保env_ids不为空
+        if len(env_ids) == 0:
+            return
+            
         # 使用向量化操作获取机器人在root_states中的索引
         robot_indices = (env_ids * self.num_actors_per_env).long()
+        
+        # 边界检查
+        max_idx = robot_indices.max().item() if len(robot_indices) > 0 else -1
+        if max_idx >= self.root_states.shape[0]:
+            raise RuntimeError(f"robot_indices越界: max_idx={max_idx}, root_states.shape={self.root_states.shape}")
         
         # 更新root_states中机器人的部分
         self.root_states[robot_indices] = self.base_init_state
