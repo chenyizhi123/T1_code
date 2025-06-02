@@ -250,7 +250,9 @@ class T1(BaseTask):
             xx, yy = torch.meshgrid(torch.arange(num_rows), torch.arange(num_cols), indexing="ij")
             self.env_origins[:, 0] = self.terrain.env_width / (num_rows + 1) * (xx.flatten()[: self.num_envs] + 1)
             self.env_origins[:, 1] = self.terrain.env_length / (num_cols + 1) * (yy.flatten()[: self.num_envs] + 1)
-            self.env_origins[:, 2] = self.terrain.terrain_heights(self.env_origins)
+            # 临时注释掉terrain调用
+            # self.env_origins[:, 2] = self.terrain.terrain_heights(self.env_origins)
+            self.env_origins[:, 2] = 0.0  # 简化版本
 
     def _init_buffers(self):
         self.num_obs = self.cfg["env"]["num_observations"]
@@ -492,11 +494,26 @@ class T1(BaseTask):
         if max_idx >= self.root_states.shape[0]:
             raise RuntimeError(f"robot_indices越界: max_idx={max_idx}, root_states.shape={self.root_states.shape}")
         
+        # 更多调试信息
+        print(f"[调试] base_init_state shape: {self.base_init_state.shape}, device: {self.base_init_state.device}")
+        print(f"[调试] robot_indices: {robot_indices}")
+        print(f"[调试] root_states shape: {self.root_states.shape}")
+        
         # 更新root_states中机器人的部分
-        self.root_states[robot_indices] = self.base_init_state
+        # 广播base_init_state到正确的形状
+        self.root_states[robot_indices] = self.base_init_state.unsqueeze(0).expand(len(robot_indices), -1)
         self.root_states[robot_indices, :2] += self.env_origins[env_ids, :2]
         self.root_states[robot_indices, :2] = apply_randomization(self.root_states[robot_indices, :2], self.cfg["randomization"].get("init_base_pos_xy"))
-        self.root_states[robot_indices, 2] += self.terrain.terrain_heights(self.root_states[robot_indices, :2])
+        
+        # 调试terrain相关
+        print(f"[调试] terrain type: {self.terrain.type}")
+        print(f"[调试] 调用terrain_heights之前，positions shape: {self.root_states[robot_indices, :2].shape}")
+        
+        # 临时注释掉terrain调用，用0代替
+        # self.root_states[robot_indices, 2] += self.terrain.terrain_heights(self.root_states[robot_indices, :2])
+        print(f"[调试] 跳过terrain_heights调用，使用固定高度0")
+        self.root_states[robot_indices, 2] += 0
+        
         self.root_states[robot_indices, 3:7] = quat_from_euler_xyz(
             torch.zeros(len(env_ids), dtype=torch.float, device=self.device),
             torch.zeros(len(env_ids), dtype=torch.float, device=self.device),
@@ -740,8 +757,16 @@ class T1(BaseTask):
         expanded_feet_pos = self.feet_pos.unsqueeze(2).expand(-1, -1, feet_edge_relative_pos.shape[2], -1).reshape(-1, 3)
         expanded_feet_quat = self.feet_quat.unsqueeze(2).expand(-1, -1, feet_edge_relative_pos.shape[2], -1).reshape(-1, 4)
         feet_edge_pos = expanded_feet_pos + quat_rotate(expanded_feet_quat, feet_edge_relative_pos.reshape(-1, 3))
+        # 临时注释掉terrain调用
+        # self.feet_contact[:] = torch.any(
+        #     (feet_edge_pos[:, 2] - self.terrain.terrain_heights(feet_edge_pos) < 0.01).reshape(
+        #         self.num_envs, len(self.feet_indices), feet_edge_relative_pos.shape[2]
+        #     ),
+        #     dim=2,
+        # )
+        # 简化版本：假设地面高度为0
         self.feet_contact[:] = torch.any(
-            (feet_edge_pos[:, 2] - self.terrain.terrain_heights(feet_edge_pos) < 0.01).reshape(
+            (feet_edge_pos[:, 2] < 0.01).reshape(
                 self.num_envs, len(self.feet_indices), feet_edge_relative_pos.shape[2]
             ),
             dim=2,
@@ -751,7 +776,9 @@ class T1(BaseTask):
         """Check if environments need to be reset"""
         self.reset_buf = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) > 1.0, dim=1)
         self.reset_buf |= self.robot_root_states[:, 7:13].square().sum(dim=-1) > self.cfg["rewards"]["terminate_vel"]
-        self.reset_buf |= self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos) < self.cfg["rewards"]["terminate_height"]
+        # 临时注释掉terrain调用
+        # self.reset_buf |= self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos) < self.cfg["rewards"]["terminate_height"]
+        self.reset_buf |= self.base_pos[:, 2] < self.cfg["rewards"]["terminate_height"]  # 简化版本
         self.time_out_buf = self.episode_length_buf > np.ceil(self.cfg["rewards"]["episode_length_s"] / self.dt)
         self.reset_buf |= self.time_out_buf
         self.time_out_buf |= self.episode_length_buf == self.cmd_resample_time
@@ -869,7 +896,7 @@ class T1(BaseTask):
                 (
                     self.base_mass_scaled,                       # 4维
                     apply_randomization(self.base_lin_vel, self.cfg["noise"].get("lin_vel")) * self.cfg["normalization"]["lin_vel"],  # 3维
-                    apply_randomization(self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos), self.cfg["noise"].get("height")).unsqueeze(-1),  # 1维
+                    apply_randomization(self.base_pos[:, 2], self.cfg["noise"].get("height")).unsqueeze(-1),  # 简化版本
                     self.pushing_forces[:, self.base_indice, :] * self.cfg["normalization"]["push_force"],   # 3维
                     self.pushing_torques[:, self.base_indice, :] * self.cfg["normalization"]["push_torque"], # 3维
                     self.ball_pos * 0.5,  # 球世界坐标位置 (3维)，缩放
@@ -883,7 +910,7 @@ class T1(BaseTask):
                 (
                     self.base_mass_scaled,
                     apply_randomization(self.base_lin_vel, self.cfg["noise"].get("lin_vel")) * self.cfg["normalization"]["lin_vel"],
-                    apply_randomization(self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos), self.cfg["noise"].get("height")).unsqueeze(-1),
+                    apply_randomization(self.base_pos[:, 2], self.cfg["noise"].get("height")).unsqueeze(-1),  # 简化版本
                     self.pushing_forces[:, self.base_indice, :] * self.cfg["normalization"]["push_force"],
                     self.pushing_torques[:, self.base_indice, :] * self.cfg["normalization"]["push_torque"],
                 ),
@@ -910,7 +937,9 @@ class T1(BaseTask):
 
     def _reward_base_height(self):
         # Tracking of base height
-        base_height = self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos)
+        # 临时注释掉terrain调用
+        # base_height = self.base_pos[:, 2] - self.terrain.terrain_heights(self.base_pos)
+        base_height = self.base_pos[:, 2]  # 简化版本，假设地面高度为0
         return torch.square(base_height - self.cfg["rewards"]["base_height_target"])
 
     def _reward_collision(self):
