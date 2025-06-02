@@ -29,6 +29,13 @@ class T1(BaseTask):
         self.gym.prepare_sim(self.sim)
         self._init_buffers()
         self._prepare_reward_function()
+        
+        # 验证设备设置
+        print(f"[调试] T1初始化完成:")
+        print(f"  device: {self.device}")
+        print(f"  base_init_state device: {self.base_init_state.device}")
+        print(f"  root_states device: {self.root_states.device}")
+        print(f"  env_origins device: {self.env_origins.device}")
 
     def _create_envs(self):
         self.num_envs = self.cfg["env"]["num_envs"]
@@ -421,9 +428,12 @@ class T1(BaseTask):
 
     def reset(self):
         """Reset all robots"""
+        print(f"[调试] reset: self.num_envs={self.num_envs}, self.device={self.device}")
         if self.device != "cpu":
             torch.cuda.synchronize()
-        self._reset_idx(torch.arange(self.num_envs, device=self.device))
+        env_ids = torch.arange(self.num_envs, device=self.device)
+        print(f"[调试] reset: env_ids创建完成, shape={env_ids.shape}, device={env_ids.device}")
+        self._reset_idx(env_ids)
         if self.device != "cpu":
             torch.cuda.synchronize()
         self._resample_commands()
@@ -464,6 +474,15 @@ class T1(BaseTask):
         # 确保env_ids不为空
         if len(env_ids) == 0:
             return
+        
+        # 添加调试信息
+        print(f"[调试] _reset_root_states: env_ids.shape={env_ids.shape}, device={env_ids.device}")
+        print(f"[调试] _reset_root_states: num_actors_per_env={self.num_actors_per_env}")
+        print(f"[调试] _reset_root_states: self.device={self.device}")
+        
+        # 确保env_ids在正确的设备上
+        if env_ids.device != self.device:
+            env_ids = env_ids.to(self.device)
             
         # 使用向量化操作获取机器人在root_states中的索引
         robot_indices = (env_ids * self.num_actors_per_env).long()
